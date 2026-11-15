@@ -37,6 +37,10 @@ def load_pairs_dataset(
     with open(jsonl_path, "r", encoding="utf-8") as f:
         for idx, line in enumerate(f):
             r = json.loads(line)
+            audio_path = r["anchor"]
+            if not os.path.exists(audio_path) or os.path.getsize(audio_path) == 0:
+                continue
+
             label = r["positive"]
             raw_lang = r.get("language") or r.get("subset", "").split("_")[-1]
             iso_code, lang_name = resolve_language(raw_lang)
@@ -48,7 +52,7 @@ def load_pairs_dataset(
                 target_text = label
 
             pairs.append({
-                "anchor": {"audio": r["anchor"]},
+                "anchor": {"audio": audio_path},
                 "positive": target_text,
             })
             if max_samples and len(pairs) >= max_samples:
@@ -56,7 +60,7 @@ def load_pairs_dataset(
     random.seed(42)
     random.shuffle(pairs)
     sample_pref = pairs[0]['positive'] if pairs else ''
-    print(f"Loaded {len(pairs):,} pairs from {jsonl_path} (100% language-conditioned, sample: '{sample_pref}')")
+    print(f"Loaded {len(pairs):,} verified pairs from {jsonl_path} (100% language-conditioned, sample: '{sample_pref}')")
     return Dataset.from_list(pairs)
 
 
@@ -185,15 +189,15 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/outputs")
     parser.add_argument("--model_name", type=str, default="unsloth/embeddinggemma-2")
     parser.add_argument("--max_seq_length", type=int, default=1024)
-    parser.add_argument("--batch_size", type=int, default=128, help="Batch size (Hopper H200 fits 128-256)")
-    parser.add_argument("--eval_batch_size", type=int, default=64)
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
+    parser.add_argument("--batch_size", type=int, default=16, help="Per-device batch size (16 fits comfortably alongside heavy background jobs)")
+    parser.add_argument("--eval_batch_size", type=int, default=16)
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=4, help="Effective batch size 64 (16x4)")
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--max_steps", type=int, default=-1)
     parser.add_argument("--learning_rate", type=float, default=1e-4)
     parser.add_argument("--warmup_ratio", type=float, default=0.05)
     parser.add_argument("--logging_steps", type=int, default=10)
-    parser.add_argument("--save_steps", type=int, default=200)
+    parser.add_argument("--save_steps", type=int, default=500)
     parser.add_argument("--lora_r", type=int, default=64, help="High-Rank LoRA (default 64)")
     parser.add_argument("--lora_alpha", type=int, default=128, help="LoRA Alpha (default 128)")
     parser.add_argument("--gradient_checkpointing", type=str, default="unsloth")
