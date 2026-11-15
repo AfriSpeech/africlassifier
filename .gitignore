@@ -1,0 +1,12 @@
+.venv
+*.pyc
+__pycache__/
+data/
+*.parquet
+*.wav
+*.flac
+*.jsonl
+outputs/
+checkpoints/
+*.log
+.DS_Store

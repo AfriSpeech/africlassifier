@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speech2topics"
+version = "0.1.0"
+description = "Multimodal EmbeddingGemma 2 fine-tuning to map African speech directly to English noun phrases and verbs"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.4.0",
+    "torchaudio",
+    "transformers",
+    "sentence-transformers>=6.1.0",
+    "datasets",
+    "spacy>=3.7.0",
+    "soundfile>=0.12.0",
+    "soxr>=0.4.0",
+    "numpy",
+    "pandas",
+    "pyarrow",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
