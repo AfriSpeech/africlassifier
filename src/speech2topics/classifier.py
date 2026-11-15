@@ -22,8 +22,9 @@ from speech2topics.languages import resolve_language
 
 @dataclass
 class PredictionResult:
-    audio: str
-    duration_seconds: float
+    input_type: str  # "audio" or "text"
+    input_source: str  # file path or raw text preview
+    duration_seconds: Optional[float]
     threshold: float
     language_conditioned: Optional[dict]  # {"iso": str, "name": str} or None
     matched_count: int
@@ -37,8 +38,11 @@ class PredictionResult:
         return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False)
 
 
+AUDIO_EXTENSIONS = {".wav", ".flac", ".mp3", ".ogg", ".m4a", ".aac", ".wma"}
+
+
 class SpeechTopicClassifier:
-    """Classifies audio in African languages directly to English noun phrases & action verbs."""
+    """Classifies African speech audio OR African text directly to English concepts."""
 
     def __init__(
         self,
@@ -144,18 +148,18 @@ class SpeechTopicClassifier:
 
     def predict(
         self,
-        audio_input: Union[str, Path, np.ndarray],
-        language: Optional[str] = None,  # Can be ISO code ("twi") or language name ("Twi")
+        input_data: Union[str, Path, np.ndarray],  # Audio file path OR African language text string
+        language: Optional[str] = None,            # Can be ISO code ("twi") or language name ("Twi")
         threshold: float = 0.35,
         top_k: int = 15,
-        filter_type: Optional[str] = None,  # "noun_phrase" or "verb"
+        filter_type: Optional[str] = None,         # "noun_phrase" or "verb"
     ) -> PredictionResult:
-        """Predict labels for an input audio file or waveform.
+        """Predict labels for an input audio file OR African language text string.
 
         Args:
-            audio_input: File path (str/Path) to audio (.wav, .flac, .mp3).
-            language: Optional ISO code (e.g. 'twi') or name (e.g. 'Twi') for disambiguation.
-            threshold: Minimum cosine similarity score (between 0.0 and 1.0).
+            input_data: Audio file path (.wav, .flac) OR raw African language text string.
+            language: ISO code (e.g. 'twi') or name (e.g. 'Twi') for language conditioning.
+            threshold: Minimum cosine similarity score.
             top_k: Maximum number of matched labels to return.
             filter_type: Optionally restrict results to "noun_phrase" or "verb".
 
@@ -165,25 +169,50 @@ class SpeechTopicClassifier:
         iso_code, lang_name = resolve_language(language)
         label_matrix = self.get_label_embeddings(lang_name=lang_name)
 
-        audio_path_str = str(audio_input)
-        try:
-            info = sf.info(audio_path_str)
-            duration = round(info.duration, 2)
-        except Exception:
-            duration = 0.0
+        input_str = str(input_data).strip()
+        is_audio = False
+        duration = None
 
-        self.model.eval()
-        with torch.no_grad():
-            audio_emb = self.model.encode(
-                [{"audio": audio_path_str}],
-                batch_size=1,
-                convert_to_tensor=True,
-                normalize_embeddings=True,
-            ).to(self.device)
+        # Detect modality: Audio file vs. African text string
+        if Path(input_str).suffix.lower() in AUDIO_EXTENSIONS and Path(input_str).exists():
+            is_audio = True
+            try:
+                info = sf.info(input_str)
+                duration = round(info.duration, 2)
+            except Exception:
+                duration = 0.0
 
-            # Cosine similarity: [1, num_labels]
-            sims = torch.mm(audio_emb, label_matrix.T).squeeze(0)
-            scores = sims.float().cpu().numpy()
+            self.model.eval()
+            with torch.no_grad():
+                input_emb = self.model.encode(
+                    [{"audio": input_str}],
+                    batch_size=1,
+                    convert_to_tensor=True,
+                    normalize_embeddings=True,
+                ).to(self.device)
+            input_type = "audio"
+            preview_source = input_str
+        else:
+            # African text input
+            if lang_name:
+                text_prompt = f"{lang_name}: {input_str}"
+            else:
+                text_prompt = input_str
+
+            self.model.eval()
+            with torch.no_grad():
+                input_emb = self.model.encode(
+                    [text_prompt],
+                    batch_size=1,
+                    convert_to_tensor=True,
+                    normalize_embeddings=True,
+                ).to(self.device)
+            input_type = "text"
+            preview_source = input_str[:120]
+
+        # Cosine similarity: [1, num_labels]
+        sims = torch.mm(input_emb, label_matrix.T).squeeze(0)
+        scores = sims.float().cpu().numpy()
 
         ranked_indices = np.argsort(-scores)
 
@@ -207,11 +236,11 @@ class SpeechTopicClassifier:
                 break
 
         top_pred = matched[0] if matched else None
-
         lang_info = {"iso": iso_code, "name": lang_name} if lang_name else None
 
         return PredictionResult(
-            audio=audio_path_str,
+            input_type=input_type,
+            input_source=preview_source,
             duration_seconds=duration,
             threshold=threshold,
             language_conditioned=lang_info,
@@ -219,3 +248,6 @@ class SpeechTopicClassifier:
             matched_labels=matched,
             top_prediction=top_pred,
         )
+
+
+Afri2LabelsClassifier = SpeechTopicClassifier

@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "speech2labels"
-version = "0.1.0"
-description = "speech2labels: Multimodal EmbeddingGemma 2 mapping African speech directly to English noun phrases, named entities, and action verbs"
+name = "afri2labels"
+version = "0.2.0"
+description = "afri2labels: Multimodal Foundation Model mapping African Speech Audio & Text directly to English Noun Phrases, Named Entities, and Action Verbs"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

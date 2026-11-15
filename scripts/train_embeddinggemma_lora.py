@@ -28,39 +28,56 @@ def load_pairs_dataset(
     max_samples: int = None,
     lang_prefix_ratio: float = 1.0,
 ) -> Dataset:
-    """Load JSONL contrastive pairs: {"anchor": audio_path, "positive": label}.
+    """Load JSONL contrastive pairs supporting dual-modality: Speech Audio AND African Text.
     
-    Uses 100% full language conditioning (e.g. "Twi: egg", "Yoruba: harvest")
-    for clean contrastive separation and complete cross-lingual disambiguation.
+    1. Audio Anchor: {"anchor": {"audio": clip_path}, "positive": "Twi: concept"}
+    2. Text Anchor:  {"anchor": "Twi: african_text", "positive": "Twi: concept"}
     """
     pairs = []
     with open(jsonl_path, "r", encoding="utf-8") as f:
         for idx, line in enumerate(f):
             r = json.loads(line)
-            audio_path = r["anchor"]
-            if not os.path.exists(audio_path) or os.path.getsize(audio_path) == 0:
-                continue
+            modality = r.get("modality")
 
-            label = r["positive"]
-            raw_lang = r.get("language") or r.get("subset", "").split("_")[-1]
-            iso_code, lang_name = resolve_language(raw_lang)
-
-            # Full natural language conditioning: "Twi: egg", "Yoruba: harvest"
-            if lang_name:
-                target_text = f"{lang_name}: {label}"
+            # Check if dual-anchor pre-formatted pair
+            if modality == "audio":
+                audio_spec = r["anchor"]
+                path = audio_spec.get("audio") if isinstance(audio_spec, dict) else audio_spec
+                if not path or not os.path.exists(path) or os.path.getsize(path) == 0:
+                    continue
+                anchor = path
+                positive = r["positive"]
+            elif modality == "text":
+                text_spec = r["anchor"]
+                text_val = text_spec.get("text") if isinstance(text_spec, dict) else str(text_spec)
+                text_val = text_val.strip()
+                if not text_val:
+                    continue
+                anchor = text_val
+                positive = r["positive"]
             else:
-                target_text = label
+                # Legacy audio-only format
+                audio_path = r["anchor"]
+                if not os.path.exists(audio_path) or os.path.getsize(audio_path) == 0:
+                    continue
+                label = r["positive"]
+                raw_lang = r.get("language") or r.get("subset", "").split("_")[-1]
+                _, lang_name = resolve_language(raw_lang)
+                prefix = lang_name or "African"
+                anchor = audio_path
+                positive = f"{prefix}: {label}" if lang_prefix_ratio > 0 else label
 
             pairs.append({
-                "anchor": {"audio": audio_path},
-                "positive": target_text,
+                "anchor": anchor,
+                "positive": positive,
             })
             if max_samples and len(pairs) >= max_samples:
                 break
+
     random.seed(42)
     random.shuffle(pairs)
     sample_pref = pairs[0]['positive'] if pairs else ''
-    print(f"Loaded {len(pairs):,} verified pairs from {jsonl_path} (100% language-conditioned, sample: '{sample_pref}')")
+    print(f"Loaded {len(pairs):,} verified pairs from {jsonl_path} (Sample positive: '{sample_pref}')")
     return Dataset.from_list(pairs)
 
 
@@ -183,16 +200,16 @@ def train(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Fine-tune EmbeddingGemma 2 with LoRA on African Speech to Concepts.")
-    parser.add_argument("--train_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/train_pairs.jsonl")
-    parser.add_argument("--val_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/ood_val_pairs.jsonl", help="Out-of-domain non-religious validation file")
+    parser = argparse.ArgumentParser(description="Fine-tune afri2labels (EmbeddingGemma 2) on African Speech & Text to Concepts.")
+    parser.add_argument("--train_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/train_pairs_dual.jsonl")
+    parser.add_argument("--val_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/ood_val_pairs_dual.jsonl", help="Dual-anchor out-of-domain non-religious validation file")
     parser.add_argument("--output_dir", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/outputs")
     parser.add_argument("--model_name", type=str, default="unsloth/embeddinggemma-2")
     parser.add_argument("--max_seq_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=16, help="Per-device batch size (16 fits comfortably alongside heavy background jobs)")
     parser.add_argument("--eval_batch_size", type=int, default=16)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=4, help="Effective batch size 64 (16x4)")
-    parser.add_argument("--epochs", type=int, default=3)
+    parser.add_argument("--epochs", type=int, default=2)
     parser.add_argument("--max_steps", type=int, default=-1)
     parser.add_argument("--learning_rate", type=float, default=1e-4)
     parser.add_argument("--warmup_ratio", type=float, default=0.05)
@@ -201,7 +218,7 @@ if __name__ == "__main__":
     parser.add_argument("--lora_r", type=int, default=64, help="High-Rank LoRA (default 64)")
     parser.add_argument("--lora_alpha", type=int, default=128, help="LoRA Alpha (default 128)")
     parser.add_argument("--gradient_checkpointing", type=str, default="unsloth")
-    parser.add_argument("--num_workers", type=int, default=8)
+    parser.add_argument("--num_workers", type=int, default=4)
     parser.add_argument("--max_train_samples", type=int, default=None)
     parser.add_argument("--max_val_samples", type=int, default=None)
     parser.add_argument("--merge_16bit", action="store_true", help="Merge LoRA weights into standalone 16-bit model")
