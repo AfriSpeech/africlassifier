@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 from unsloth import FastSentenceTransformer
+from speech2topics.languages import resolve_language
 
 
 def recall_and_mrr(
@@ -67,10 +68,13 @@ def evaluate(args):
 
     print(f"Loaded {len(test_clips):,} test audio clips.")
 
-    # Collect candidate pool of labels
-    all_candidate_labels = sorted(list({lbl for s in test_clips for lbl in s["all_labels"]}))
+    # Format candidate pool of labels with full language conditioning: "Twi: egg"
+    all_candidate_labels = sorted(list({
+        f"{resolve_language(s.get('language') or s.get('subset', '').split('_')[-1])[1] or 'African'}: {lbl}"
+        for s in test_clips for lbl in s["all_labels"]
+    }))
     label_to_idx = {lbl: idx for idx, lbl in enumerate(all_candidate_labels)}
-    print(f"Candidate label vocabulary: {len(all_candidate_labels):,} concepts.")
+    print(f"Candidate label vocabulary: {len(all_candidate_labels):,} language-conditioned concepts.")
 
     # Encode all candidate labels
     with torch.no_grad():
@@ -98,7 +102,13 @@ def evaluate(args):
     # Ground truth positives for each audio clip
     positives = []
     for s in test_clips:
-        pos_indices = {label_to_idx[lbl] for lbl in s["all_labels"] if lbl in label_to_idx}
+        _, lang_name = resolve_language(s.get("language") or s.get("subset", "").split("_")[-1])
+        prefix = lang_name or "African"
+        pos_indices = {
+            label_to_idx[f"{prefix}: {lbl}"]
+            for lbl in s["all_labels"]
+            if f"{prefix}: {lbl}" in label_to_idx
+        }
         positives.append(pos_indices)
 
     metrics = recall_and_mrr(sims, positives, ks=(1, 5, 10))

@@ -41,8 +41,8 @@ def parse_args():
         "--language",
         "-l",
         type=str,
-        default=None,
-        help="Optional ISO code for disambiguation (e.g. 'twi', 'yor', 'hau', 'aha')",
+        required=True,
+        help="ISO code or language name for conditioning (e.g. 'twi', 'yor', 'hau', 'Twi')",
     )
     parser.add_argument(
         "--threshold",

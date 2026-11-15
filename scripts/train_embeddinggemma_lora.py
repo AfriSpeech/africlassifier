@@ -26,12 +26,12 @@ from speech2topics.languages import resolve_language
 def load_pairs_dataset(
     jsonl_path: str,
     max_samples: int = None,
-    lang_prefix_ratio: float = 0.5,
+    lang_prefix_ratio: float = 1.0,
 ) -> Dataset:
     """Load JSONL contrastive pairs: {"anchor": audio_path, "positive": label}.
     
-    Supports 50% pure concepts ("egg") and 50% natural language-prefixed ("Twi: egg")
-    for dual-mode universal zero-shot and language-conditioned disambiguation.
+    Uses 100% full language conditioning (e.g. "Twi: egg", "Yoruba: harvest")
+    for clean contrastive separation and complete cross-lingual disambiguation.
     """
     pairs = []
     with open(jsonl_path, "r", encoding="utf-8") as f:
@@ -41,8 +41,8 @@ def load_pairs_dataset(
             raw_lang = r.get("language") or r.get("subset", "").split("_")[-1]
             iso_code, lang_name = resolve_language(raw_lang)
 
-            # 50% natural language name conditioning ("Twi: egg"), 50% pure concepts ("egg")
-            if lang_name and (idx % 2 == 1) and lang_prefix_ratio > 0:
+            # Full natural language conditioning: "Twi: egg", "Yoruba: harvest"
+            if lang_name:
                 target_text = f"{lang_name}: {label}"
             else:
                 target_text = label
@@ -55,8 +55,8 @@ def load_pairs_dataset(
                 break
     random.seed(42)
     random.shuffle(pairs)
-    sample_pref = pairs[1]['positive'] if len(pairs) > 1 else ''
-    print(f"Loaded {len(pairs):,} pairs from {jsonl_path} ({lang_prefix_ratio:.0%} conditioned, sample: '{sample_pref}')")
+    sample_pref = pairs[0]['positive'] if pairs else ''
+    print(f"Loaded {len(pairs):,} pairs from {jsonl_path} (100% language-conditioned, sample: '{sample_pref}')")
     return Dataset.from_list(pairs)
 
 

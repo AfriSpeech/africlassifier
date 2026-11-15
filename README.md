@@ -63,13 +63,13 @@ from speech2topics import SpeechTopicClassifier
 classifier = SpeechTopicClassifier.load(
     model_path="outputs/embeddinggemma_lora",
     catalog_path="data/trained_labels.json",
-    embeddings_cache_path="data/label_embeddings.pt",  # Optional precomputed cache
     device="cuda",
 )
 
-# Predict English concepts for any African speech audio
+# Predict English concepts with full language conditioning (pass ISO or name)
 result = classifier.predict(
     audio_input="sample_clip.flac",
+    language="twi",     # Or "Twi", "yor", "hau", "Amharic", etc.
     threshold=0.35,     # Minimum cosine similarity
     top_k=10,           # Max returned labels
     filter_type=None,   # Optional: "noun_phrase" or "verb"
@@ -85,6 +85,10 @@ print(result.to_json(indent=2))
   "audio": "sample_clip.flac",
   "duration_seconds": 6.42,
   "threshold": 0.35,
+  "language_conditioned": {
+    "iso": "twi",
+    "name": "Twi"
+  },
   "matched_count": 4,
   "matched_labels": [
     {
@@ -118,7 +122,7 @@ print(result.to_json(indent=2))
 
 ### CLI Tool
 ```bash
-python -m speech2topics.infer --audio sample.flac --threshold 0.35 --top-k 10
+python -m speech2topics.infer --audio sample.flac --language twi --threshold 0.35 --top-k 10
 ```
 
 ---
