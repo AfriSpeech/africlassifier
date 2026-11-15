@@ -183,7 +183,7 @@ class SpeechTopicClassifier:
 
             # Cosine similarity: [1, num_labels]
             sims = torch.mm(audio_emb, label_matrix.T).squeeze(0)
-            scores = sims.cpu().numpy()
+            scores = sims.float().cpu().numpy()
 
         ranked_indices = np.argsort(-scores)
 
