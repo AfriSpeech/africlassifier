@@ -1,28 +1,34 @@
-# Speech2Topics: African Speech to English Noun Phrases & Action Verbs
+# speech2labels: African Speech to Concepts, Entities & Action Labels
 
-A multimodal neural retrieval system that maps audio in **any African language** directly to **English noun phrases** (via spaCy `noun_chunks`) and **action verbs** in a joint 768-dimensional embedding space using **EmbeddingGemma 2** and **Unsloth LoRA**.
+**speech2labels** is a multimodal neural retrieval foundation model that maps speech audio in **any African language** directly to **English noun phrases** (via spaCy `doc.noun_chunks`), **African named entities**, and **action verbs** in a joint 768-dimensional embedding space using **EmbeddingGemma 2** and **Unsloth LoRA**.
 
-No intermediate ASR or machine translation is required at inference time.
+No intermediate ASR transcription or language identification is required at inference time.
 
 ---
 
 ## 1. Key Innovations
 
-1. **Multimodal Concept Grounding:**
-   - Base Model: `unsloth/embeddinggemma-2` (300M parameters).
-   - Audio Encoder: 12-layer Conformer (25 frames/sec) adapted to African phonology using LoRA (`finetune_audio_layers=True`).
+1. **Direct Speech-to-Label Grounding:**
+   - Base Architecture: `unsloth/embeddinggemma-2` (300M parameters).
+   - Audio Encoder: 12-layer Conformer (25 frames/sec) adapted to African phonology and tonal variations using High-Rank LoRA ($r=64, \alpha=128$, `finetune_audio_layers=True`).
    - Text Projection: Gemma 2 language model layers (`q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, `down_proj`).
-   - Training Objective: `MultipleNegativesRankingLoss` with large in-batch negatives on NVIDIA H200 (140 GB VRAM).
+   - Training Objective: `MultipleNegativesRankingLoss` (InfoNCE contrastive learning) with large in-batch negatives on an NVIDIA H200 (140 GB VRAM).
+   - 100% Full Language Conditioning: Every concept prompt is gated with the natural language name (`"Twi: <label>"`, `"Yoruba: <label>"`, `"English: <label>"`, `"French: <label>"`).
 
-2. **Parallel JW Corpus Alignment:**
-   - **Audio Source:** `AfriSpeech/african-speech-public_v1` (142 African languages, ~2,268 hours).
-   - **Parallel Text:** `AfriSpeech/african-corpus-jw` (Watchtower literature aligned across 100+ African languages by `verse_key`).
+2. **Parallel Corpus Alignment:**
+   - **African Speech Audio:** `AfriSpeech/african-speech-public_v1` (100+ African languages, ~1,540 hours, ~430k clips).
+   - **Parallel Text:** `AfriSpeech/african-corpus-jw` aligned by `verse_key`.
    - **English Reference:** `english_cache.csv` (~552,433 reference paragraphs).
-   - **All Samples Included:** Includes full audio samples without dropping number/digit clips.
+   - **Cross-Lingual Anchoring:** Includes balanced African English (~5,000 clips) and French (~2,500 clips from FLEURS) to preserve acoustic boundaries and support code-switching.
+   - **All Samples Included:** Retains all audio samples including numbers, Bible citations, and songs.
 
-3. **Strict Concept Extraction:**
-   - **Noun Phrases:** Strictly extracted using spaCy `doc.noun_chunks` (e.g. *"lack of confidence"*, *"shallow ocean water"*, *"god's promise"*).
-   - **Action Verbs:** Informative predicate lemmas extracted via `token.pos_ == "VERB"` (e.g. *"suffer"*, *"trust"*, *"protect"*, *"worship"*).
+3. **Strict Concept & Entity Extraction:**
+   - **Noun Phrases:** Strictly extracted using spaCy `doc.noun_chunks` as cohesive semantic units.
+   - **Action Verbs:** Extracted via `token.pos_ == "VERB"` excluding generic auxiliaries.
+   - **Open-Vocabulary Scaling:** Supports inference over an expanded taxonomy of **~696,000 concepts** (AfricaNouns + African Named Entities from codeswitch lexicons).
+
+4. **Out-of-Domain Non-Religious Validation:**
+   - Training loss and validation recall are evaluated directly on the **100% non-religious FLEURS dataset** across 13 African languages (covering news, science, history, and geography from FLoRes-101).
 
 ---
 
