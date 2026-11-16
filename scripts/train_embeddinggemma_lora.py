@@ -201,8 +201,8 @@ def train(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fine-tune afri2labels (EmbeddingGemma 2) on African Speech & Text to Concepts.")
-    parser.add_argument("--train_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/train_pairs_dual.jsonl")
-    parser.add_argument("--val_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/ood_val_pairs_dual.jsonl", help="Dual-anchor out-of-domain non-religious validation file")
+    parser.add_argument("--train_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/train_pairs_dg.jsonl", help="Dual-Granularity foundation training set")
+    parser.add_argument("--val_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/ood_val_pairs_dg.jsonl", help="Dual-Granularity out-of-domain non-religious validation file")
     parser.add_argument("--output_dir", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/outputs")
     parser.add_argument("--model_name", type=str, default="unsloth/embeddinggemma-2")
     parser.add_argument("--max_seq_length", type=int, default=1024)
