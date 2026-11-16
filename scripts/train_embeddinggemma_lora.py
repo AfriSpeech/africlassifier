@@ -200,16 +200,16 @@ def train(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Fine-tune afri2labels (EmbeddingGemma 2) on African Speech & Text to Concepts.")
-    parser.add_argument("--train_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/train_pairs_dg.jsonl", help="Dual-Granularity foundation training set")
-    parser.add_argument("--val_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/ood_val_pairs_dg.jsonl", help="Dual-Granularity out-of-domain non-religious validation file")
+    parser = argparse.ArgumentParser(description="Fine-tune afri2labels (EmbeddingGemma 2) with Pure Full-Sentence Semantics (CLIP Principle).")
+    parser.add_argument("--train_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/train_pairs_sentence.jsonl", help="Pure full-sentence foundation training set")
+    parser.add_argument("--val_file", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/data/ood_val_pairs_sentence.jsonl", help="Pure full-sentence out-of-domain non-religious validation file")
     parser.add_argument("--output_dir", type=str, default="/mnt/volume_d2wey28/projects/speech2topics/outputs")
     parser.add_argument("--model_name", type=str, default="unsloth/embeddinggemma-2")
     parser.add_argument("--max_seq_length", type=int, default=1024)
     parser.add_argument("--batch_size", type=int, default=16, help="Per-device batch size (16 fits comfortably alongside heavy background jobs)")
     parser.add_argument("--eval_batch_size", type=int, default=16)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=4, help="Effective batch size 64 (16x4)")
-    parser.add_argument("--epochs", type=int, default=2)
+    parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--max_steps", type=int, default=-1)
     parser.add_argument("--learning_rate", type=float, default=1e-4)
     parser.add_argument("--warmup_ratio", type=float, default=0.05)
