@@ -39,89 +39,106 @@ speech2topics/
 ├── pyproject.toml
 ├── README.md
 ├── scripts/
-│   ├── build_jw_audio_noun_pairs.py   # Full parallel dataset builder
-│   ├── train_embeddinggemma_lora.py    # Unsloth LoRA training script
-│   └── evaluate.py                     # Recall@K (1, 5, 10) & MRR evaluator
+│   ├── build_sentence_foundation_dataset.py  # Pure full-sentence CLIP builder
+│   ├── build_expanded_inference_catalog.py   # Merges ~696k AfricaNouns & entities
+│   ├── build_deployment_index.py             # Pre-encodes labels into fast tensor
+│   ├── train_embeddinggemma_lora.py          # High-Rank LoRA training script
+│   └── evaluate.py                           # Recall@K (1, 5, 10) & MRR evaluator
 ├── src/
-│   └── speech2topics/
+│   └── afri2labels/
 │       ├── __init__.py
-│       ├── classifier.py              # Inference engine (cosine similarity)
-│       ├── extractor.py               # spaCy noun_chunks & verb extractor
-│       └── infer.py                   # CLI tool emitting structured JSON
+│       ├── classifier.py                     # Omnimodal inference engine (audio + text)
+│       ├── extractor.py                      # spaCy noun_chunks & verb extractor
+│       ├── languages.py                      # 308-language bidirectional ISO mapping
+│       ├── server.py                         # High-performance FastAPI REST server
+│       └── infer.py                          # CLI tool emitting structured JSON
 └── data/
-    ├── clips/                         # 16 kHz mono FLAC clips
-    ├── train_pairs.jsonl              # (audio, concept_label) training pairs
-    ├── val_pairs.jsonl                # Validation pairs
-    ├── test_clips.jsonl               # In-domain test clips
-    ├── zero_shot_test_clips.jsonl     # Held-out African language test clips
-    └── trained_labels.json            # Global catalog of all trained concepts
+    ├── clips/                                # 16 kHz mono FLAC clips
+    ├── train_pairs_sentence.jsonl            # Pure full-sentence training pairs
+    ├── ood_val_pairs_sentence.jsonl          # Out-of-domain FLEURS validation pairs
+    ├── expanded_labels.json                  # ~696k African nouns & named entities
+    └── deployment_index/                     # Precomputed vector index for <5ms serving
 ```
 
 ---
 
-## 3. Inference Library Usage
+## 3. Deployment Workflow (Pre-Embedded Vector Search)
 
-### Python API
+### Step 1: Pre-Encode the ~696,000 Noun & Entity Catalog (Offline, One-Time)
+```bash
+python scripts/build_deployment_index.py \
+    --model_path outputs/checkpoint-1000 \
+    --catalog_path data/expanded_labels.json \
+    --out_dir data/deployment_index
+```
+This generates `data/deployment_index/label_embeddings.pt` (normalized float16 tensor, ~1 GB) once.
+
+### Step 2: High-Performance Serving (< 5ms Query Latency)
+
+#### A. Python API
 ```python
-from speech2topics import SpeechTopicClassifier
+from afri2labels import Afri2LabelsClassifier
 
-# Load fine-tuned model and trained concept catalog
-classifier = SpeechTopicClassifier.load(
-    model_path="outputs/embeddinggemma_lora",
-    catalog_path="data/trained_labels.json",
+classifier = Afri2LabelsClassifier.load(
+    model_path="outputs/checkpoint-1000",
+    catalog_path="data/deployment_index/label_metadata.json",
+    embeddings_cache_path="data/deployment_index/label_embeddings.pt",
     device="cuda",
 )
 
-# Predict English concepts with full language conditioning (pass ISO or name)
-result = classifier.predict(
-    audio_input="sample_clip.flac",
-    language="twi",     # Or "Twi", "yor", "hau", "Amharic", etc.
-    threshold=0.35,     # Minimum cosine similarity
-    top_k=10,           # Max returned labels
-    filter_type=None,   # Optional: "noun_phrase" or "verb"
-)
+# 1. Spoken Audio Query:
+result = classifier.predict("sample.flac", language="twi", top_k=5)
 
-# Output structured JSON
+# 2. African Native Text Query:
+result = classifier.predict("Sɛ yɛbrɛ yɛn ho ase na yebu afoforo a...", language="twi", top_k=5)
+
 print(result.to_json(indent=2))
+```
+
+#### B. FastAPI REST Microservice
+```bash
+python -m afri2labels.server
+# Listening on http://0.0.0.0:8000
+# Endpoints: POST /predict/audio, POST /predict/text
 ```
 
 ### JSON Output Schema
 ```json
 {
-  "audio": "sample_clip.flac",
+  "input_type": "audio",
+  "input_source": "sample_clip.flac",
   "duration_seconds": 6.42,
   "threshold": 0.35,
   "language_conditioned": {
     "iso": "twi",
     "name": "Twi"
   },
-  "matched_count": 4,
+  "matched_count": 3,
   "matched_labels": [
     {
-      "label": "lack of confidence",
+      "rank": 1,
+      "label": "cassava harvest",
       "type": "noun_phrase",
-      "score": 0.6421
+      "score": 0.7421
     },
     {
-      "label": "politicians",
+      "rank": 2,
+      "label": "farmers",
       "type": "noun_phrase",
-      "score": 0.5894
+      "score": 0.6914
     },
     {
-      "label": "trust",
-      "type": "verb",
-      "score": 0.5312
-    },
-    {
-      "label": "suffer",
-      "type": "verb",
-      "score": 0.4851
+      "rank": 3,
+      "label": "crop yield",
+      "type": "noun_phrase",
+      "score": 0.6542
     }
   ],
   "top_prediction": {
-    "label": "lack of confidence",
+    "rank": 1,
+    "label": "cassava harvest",
     "type": "noun_phrase",
-    "score": 0.6421
+    "score": 0.7421
   }
 }
 ```
