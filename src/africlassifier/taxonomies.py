@@ -51,6 +51,11 @@ INTENTS = {
     "farewell": "saying goodbye, farewell, see you later, bye, end conversation",
 }
 
+SAFETY = {
+    "hate_speech": "hate speech, hostility, violence, death threats, killing, destruction, wrath, cursing, warfare, bloodshed, slaughter, vengeance, violent enemies",
+    "non_hate_speech": "peaceful, non-violent, love, blessing, kindness, encouraging, gentle, polite, constructive, friendly, harmless, safe, respectful",
+}
+
 # The comprehensive 100+ African languages catalog
 from africlassifier.languages import ISO_TO_NAME
 

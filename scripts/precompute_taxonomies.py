@@ -9,7 +9,7 @@ from pathlib import Path
 import torch
 from unsloth import FastSentenceTransformer
 
-from africlassifier.taxonomies import DOMAINS, EMOTIONS, INTENTS, LANGUAGES, SENTIMENTS
+from africlassifier.taxonomies import DOMAINS, EMOTIONS, INTENTS, LANGUAGES, SAFETY, SENTIMENTS
 
 
 def precompute_taxonomies(model_path: str, out_file: str, device: str = "cuda"):
@@ -35,6 +35,7 @@ def precompute_taxonomies(model_path: str, out_file: str, device: str = "cuda"):
         "sentiment": SENTIMENTS,
         "emotion": EMOTIONS,
         "intent": INTENTS,
+        "safety": SAFETY,
         "language": LANGUAGES,
     }
 

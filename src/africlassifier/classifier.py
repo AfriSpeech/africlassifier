@@ -50,6 +50,7 @@ class MultiTaskResult:
     sentiment: TaskPrediction
     emotion: TaskPrediction
     intent: TaskPrediction
+    safety: TaskPrediction
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -211,12 +212,13 @@ class AfriClassifier:
         else:
             q_emb = q_emb.float().cpu()
 
-        # 2. Score all 5 classification tasks
+        # 2. Score all 6 classification tasks
         lang_pred = self._score_task(q_emb, "language", top_k=top_k)
         dom_pred = self._score_task(q_emb, "domain", top_k=top_k)
         sent_pred = self._score_task(q_emb, "sentiment", top_k=top_k)
         emo_pred = self._score_task(q_emb, "emotion", top_k=top_k)
         int_pred = self._score_task(q_emb, "intent", top_k=top_k)
+        safe_pred = self._score_task(q_emb, "safety", top_k=top_k)
 
         elapsed_ms = round((time.time() - t0) * 1000, 2)
 
@@ -231,4 +233,5 @@ class AfriClassifier:
             sentiment=sent_pred,
             emotion=emo_pred,
             intent=int_pred,
+            safety=safe_pred,
         )
