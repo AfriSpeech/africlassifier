@@ -2,7 +2,7 @@
 
 import pytest
 from africlassifier.languages import ISO_TO_NAME, NAME_TO_ISO, resolve_language
-from africlassifier.taxonomies import DOMAINS, EMOTIONS, INTENTS, LANGUAGES, SENTIMENTS
+from africlassifier.taxonomies import DOMAINS, EMOTIONS, INTENTS, LANGUAGES, SAFETY, SENTIMENTS
 
 
 def test_language_resolution():
@@ -38,6 +38,9 @@ def test_taxonomies_structure():
     assert "complaint" in INTENTS
     assert "cancellation_refund" in INTENTS
     assert "inquiry" in INTENTS
+
+    assert "hate_speech" in SAFETY
+    assert "non_hate_speech" in SAFETY
 
     assert len(LANGUAGES) >= 100
     assert "Twi" in LANGUAGES or "Akan" in LANGUAGES

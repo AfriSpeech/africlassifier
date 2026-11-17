@@ -181,26 +181,33 @@ def collect_benchmark_samples(data_dir: Path, client, samples_per_lang: int = 5)
     audio_dir.mkdir(parents=True, exist_ok=True)
     gold_file = data_dir / "benchmark_gold.jsonl"
 
+    samples = []
+    counts_by_lang: Dict[str, int] = {}
     if gold_file.exists():
-        print(f"Loading existing benchmark annotations from {gold_file}...")
-        samples = []
         with open(gold_file, "r", encoding="utf-8") as f:
             for line in f:
-                samples.append(json.loads(line))
-        if len(samples) >= 40:
-            print(f"  ✓ Loaded {len(samples):,} annotated benchmark samples.")
-            return samples
+                if line.strip():
+                    item = json.loads(line)
+                    samples.append(item)
+                    key = f"{item['corpus']}_{item['iso']}"
+                    counts_by_lang[key] = counts_by_lang.get(key, 0) + 1
+        print(f"Loaded {len(samples):,} existing annotations from {gold_file}.")
 
     print("=" * 65)
     print("Sampling Non-Religious Audio from WaxalNLP & FLEURS & Annotating with Gemini")
     print("=" * 65)
 
-    samples = []
     hf_api = HfApi()
     waxal_info = hf_api.dataset_info("google/WaxalNLP", files_metadata=True)
     waxal_parquets = [f.rfilename for f in waxal_info.siblings if f.rfilename.endswith(".parquet") and "test" in f.rfilename]
 
     for corpus, cfg, lang_name, iso in tqdm(BENCHMARK_CONFIGS, desc="Datasets"):
+        key = f"{corpus}_{iso}"
+        existing_count = counts_by_lang.get(key, 0)
+        if existing_count >= samples_per_lang:
+            print(f"  ✓ {lang_name:18s} ({corpus}): already has {existing_count} samples. Skipping.")
+            continue
+
         rows_iter = []
         if corpus == "waxal":
             code = cfg.split("_")[0]
@@ -210,18 +217,18 @@ def collect_benchmark_samples(data_dir: Path, client, samples_per_lang: int = 5)
                     p = hf_hub_download("google/WaxalNLP", matches[0], repo_type="dataset")
                     df = pd.read_parquet(p)
                     rows_iter = df.to_dict(orient="records")
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"  Warning: could not download waxal parquet {matches[0]}: {e}")
         else:
             # FLEURS
             try:
                 ds = load_dataset("google/fleurs", cfg, split="test", streaming=True)
                 ds = ds.cast_column("audio", Audio(decode=False))
                 rows_iter = ds
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"  Warning: could not stream fleurs {cfg}: {e}")
 
-        count = 0
+        count = existing_count
         for row in rows_iter:
             text = row.get("transcription") or row.get("text", "")
             if not text or len(text) < 20:
@@ -257,16 +264,16 @@ def collect_benchmark_samples(data_dir: Path, client, samples_per_lang: int = 5)
                 "english_translation": ann.get("english_translation", ""),
             }
             samples.append(item)
+            with open(gold_file, "a", encoding="utf-8") as gf:
+                gf.write(json.dumps(item, ensure_ascii=False) + "\n")
+                gf.flush()
             count += 1
             if count >= samples_per_lang:
                 break
 
-        print(f"  ✓ {lang_name:18s} ({corpus}): {count} samples annotated.")
+        print(f"  ✓ {lang_name:18s} ({corpus}): {count} total samples annotated.")
 
-    with open(gold_file, "w", encoding="utf-8") as f:
-        for s in samples:
-            f.write(json.dumps(s, ensure_ascii=False) + "\n")
-    print(f"\nSaved {len(samples):,} gold annotated benchmark samples to {gold_file}")
+    print(f"\nAll benchmark samples ready ({len(samples):,} items in {gold_file})")
     return samples
 
 
@@ -312,7 +319,7 @@ def run_benchmark(model_path: str, data_dir: str, device: str = "cpu"):
         audio_latencies.append((time.time() - t0) * 1000)
 
         top1_lang = res.detected_language.label.lower()
-        pred_langs_top3 = [k.label.lower() for k in res.detected_language_pred.top_k] if hasattr(res, 'detected_language_pred') else [top1_lang]
+        pred_langs_top3 = [k.label.lower() for k in res.language.top_k]
 
         if gold_lang in top1_lang or top1_lang in gold_lang or (gold_lang == "akan" and "twi" in top1_lang):
             audio_lang_top1 += 1

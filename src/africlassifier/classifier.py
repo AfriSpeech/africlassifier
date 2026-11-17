@@ -46,6 +46,7 @@ class MultiTaskResult:
     device_used: str       # "cpu" or "cuda"
     inference_time_ms: float
     detected_language: ScoredClass
+    language: TaskPrediction
     domain: TaskPrediction
     sentiment: TaskPrediction
     emotion: TaskPrediction
@@ -229,6 +230,7 @@ class AfriClassifier:
             device_used=self.device,
             inference_time_ms=elapsed_ms,
             detected_language=lang_pred.top_1,
+            language=lang_pred,
             domain=dom_pred,
             sentiment=sent_pred,
             emotion=emo_pred,
