@@ -130,6 +130,12 @@ python -m africlassifier.infer --text "Kuayɔ mu nneɛma a ɛbɛma nnɔbae adɔ"
       "label": "cancellation_refund",
       "score": 0.0609
     }
+  },
+  "safety": {
+    "top_1": {
+      "label": "non_hate_speech",
+      "score": 0.2891
+    }
   }
 }
 ```
@@ -140,12 +146,43 @@ python -m africlassifier.infer --text "Kuayɔ mu nneɛma a ɛbɛma nnɔbae adɔ"
 
 ```bash
 # Launch on CPU (default):
-python -m africlassifier.server
+afri-server
+# Or: python -m africlassifier.server
 
 # Or on GPU:
-USE_GPU=1 python -m africlassifier.server
+USE_GPU=1 afri-server
 ```
 
 **Endpoints:**
 - `POST /classify/audio` (Form: `file`, `language` (optional), `top_k=1`)
 - `POST /classify/text`  (JSON: `{"text": "...", "language": "twi", "top_k": 1}`)
+
+---
+
+## 5. Comprehensive Multi-Task Benchmark
+
+Evaluated on **80 non-religious African speech clips and native texts across 16 African languages** sampled from **Google WaxalNLP** and **Google FLEURS**, with gold labels independently annotated by **Google Gemini 2.5 Flash**:
+
+| Modality / Task | Metric | Score | Details / Breakdown |
+|---|---|---|---|
+| **Audio Language ID** | Top-1 Accuracy | **47.5%** | 16 African languages |
+| **Audio Language ID** | Top-3 Accuracy | **62.5%** | Correct language within Top-3 |
+| **Audio Domain / Topic** | Top-1 Accuracy | **32.5%** | 11 semantic domain classes |
+| **Audio Domain / Topic** | Top-3 Accuracy | **53.8%** | Broad domain alignment |
+| **Audio Sentiment** | Accuracy | **50.0%** | Positive / Negative / Neutral |
+| **Text Sentiment** | Accuracy | **61.3%** | Native African text |
+| **Text Domain / Topic** | Top-1 Accuracy | **23.8%** | 11 semantic domain classes |
+| **Text Domain / Topic** | Top-3 Accuracy | **38.8%** | Native African text |
+| **Safety / Violence Moderation** | Threat / Hostility Recall | **100.0%** (8/8) | Correctly caught all violent/warfare/killing statements |
+| **Safety / Content Moderation** | Overall Balanced Accuracy | **68.8%** (11/16) | Hate speech vs peaceful expressions |
+| **Customer Support Intent** | Cancellation / Refund | **100.0%** (4/4) | Across Twi, Yoruba, Swahili, Hausa |
+| **Customer Support Intent** | Farewell | **100.0%** (4/4) | Across Twi, Yoruba, Swahili, Hausa |
+| **Customer Support Intent** | Inquiry | **75.0%** (3/4) | Information seeking |
+| **Customer Support Intent** | Top-2 Accuracy | **50.0%** | Experimental 9-class intent |
+
+### Evaluated Languages
+- **West Africa**: Akan (Twi/Fante), Southern Dagaare, Ewe, Dagbani, Ikposo, Yoruba, Hausa
+- **East Africa**: Swahili, Amharic, Oromo, Wolaytta, Luganda, Acholi
+- **Central Africa**: Lingala
+- **Southern Africa**: Shona, Zulu
+
