@@ -1,4 +1,4 @@
-"""Command-line inference tool for africlassifier (CPU-First by default)."""
+"""Command-line multi-task classification tool for africlassifier (CPU-first by default)."""
 
 import argparse
 import sys
@@ -8,7 +8,7 @@ from africlassifier.classifier import AfriClassifier
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="africlassifier: Classify African speech audio OR text into English or French AfricaNouns."
+        description="africlassifier: Zero-shot Multi-Task Classification (Domain, Sentiment, Emotion, Intent, Language)."
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
@@ -27,14 +27,14 @@ def parse_args():
         "-l",
         type=str,
         default=None,
-        help="Input language code or name (e.g. 'twi', 'yor', 'swahili', 'amharic')",
+        help="Optional language hint (e.g. 'twi', 'yor', 'swahili'). Auto-detected if None.",
     )
     parser.add_argument(
-        "--target-lang",
-        "-t",
-        choices=["en", "fr"],
-        default="en",
-        help="Target noun phrases language: 'en' (default, English) or 'fr' (French)",
+        "--top-k",
+        "-k",
+        type=int,
+        default=1,
+        help="Number of top predictions per task (default: 1 for clean top-1 output)",
     )
     parser.add_argument(
         "--model",
@@ -44,10 +44,10 @@ def parse_args():
         help="Path to trained model or checkpoint (default: outputs/embeddinggemma_lora)",
     )
     parser.add_argument(
-        "--indices-dir",
+        "--index",
         type=str,
-        default="data/indices",
-        help="Directory containing precomputed AfricaNouns indices (default: data/indices)",
+        default="data/taxonomies_index.pt",
+        help="Path to precomputed taxonomy index (default: data/taxonomies_index.pt)",
     )
     parser.add_argument(
         "--device",
@@ -55,24 +55,6 @@ def parse_args():
         default="cpu",
         choices=["cpu", "cuda"],
         help="Computation device (default: 'cpu' for fast lightweight inference, or 'cuda')",
-    )
-    parser.add_argument(
-        "--quantize",
-        action="store_true",
-        help="Enable dynamic INT8 quantization for CPU",
-    )
-    parser.add_argument(
-        "--threshold",
-        type=float,
-        default=0.15,
-        help="Cosine similarity threshold for selecting labels (default: 0.15)",
-    )
-    parser.add_argument(
-        "--top-k",
-        "-k",
-        type=int,
-        default=5,
-        help="Maximum number of matched labels to return (default: 5)",
     )
     return parser.parse_args()
 
@@ -87,16 +69,13 @@ def main():
 
     classifier = AfriClassifier.load(
         model_path=args.model,
-        indices_dir=args.indices_dir,
+        taxonomy_index_path=args.index,
         device=args.device,
-        quantize_cpu=args.quantize,
     )
 
     result = classifier.predict(
         input_data=input_data,
         language=args.language,
-        target_language=args.target_lang,
-        threshold=args.threshold,
         top_k=args.top_k,
     )
 

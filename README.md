@@ -1,33 +1,22 @@
-# africlassifier: CPU-First Foundation Model for African Speech & Text Classification
+# africlassifier: CPU-First Multi-Task Foundation Classifier for African Speech & Text
 
-**africlassifier** is an omnimodal neural retrieval foundation model that classifies speech audio **or** text in **any African language** directly into **English or French AfricaNouns** in a shared 768-dimensional embedding space using **EmbeddingGemma 2** and **Unsloth LoRA**.
+**africlassifier** is an omnimodal zero-shot classification foundation model that classifies speech audio **or** text in **any African language** across 5 core NLP dimensions:
+1. **Domain / Topic** *(Agriculture, Healthcare, Governance, Finance, Education, Religion, Tech, Customer Support)*
+2. **Sentiment** *(Positive, Negative, Neutral)*
+3. **Emotion** *(Joy, Sadness, Anger, Fear, Surprise, Hope, Frustration, Neutral)*
+4. **Intent** *(Greeting, Inquiry, Complaint, Billing/Payment, Tech Support, Booking, Refund/Cancellation, Farewell)*
+5. **Language Identification** *(100+ African languages + English + French)*
 
-Engineered **CPU-first** for fast, lightweight local deployment, with optional non-quantized GPU acceleration.
+Engineered **CPU-first** for fast on-device and local server deployment, with optional non-quantized GPU acceleration.
 
 ---
 
 ## 1. Key Capabilities
 
-1. **Omnimodal Input (Speech OR Text):**
-   - **Speech Audio:** Accepts `.wav`, `.flac`, `.mp3` in 100+ African languages.
-   - **Native African Text:** Accepts raw sentences in any African orthography.
-   - **Zero Intermediate Transcription:** Maps directly to conceptual meaning without speech-to-text or machine translation.
-
-2. **Dual Target Languages (English or French AfricaNouns):**
-   - User decides which language of noun phrases to retrieve (`target_language="en"` or `"fr"`). Default: **English (`en`)**.
-   - Built directly from [AfriSpeech/africa-nouns](https://huggingface.co/datasets/AfriSpeech/africa-nouns) (2.77M English + 3.10M French verified African common nouns).
-   - **No Named Entities:** Proper nouns, personal names, and demonyms are excluded; only pure common nouns and noun phrases are returned.
-   - **No Verbs:** Strict focus on semantic concepts, topics, and noun phrases.
-
-3. **CPU-First Engineering:**
-   - **Fast CPU Inference:** Defaults to `device="cpu"` using optimized thread execution and optional dynamic INT8 quantization.
-   - **GPU Support:** Deploy on `device="cuda"` with non-quantized weights when hardware acceleration is available.
-   - **Sub-15ms Retrieval:** Precomputed L2-normalized vector indices (`data/indices/nouns_en_embeddings.pt` and `nouns_fr_embeddings.pt`) enable instant Top-K dot-product ranking across 100,000+ noun phrases.
-
-4. **100% Full-Sentence Pretraining (The CLIP Principle):**
-   - Fine-tuned on **796,481 full natural sentence pairs** from AfriSpeech JW parallel audio and text.
-   - Evaluated out-of-domain on the **100% non-religious FLEURS benchmark** across 13 African languages.
-   - Checkpoints achieve an out-of-domain evaluation loss of **~0.345** and training loss below **0.026**.
+- **Omnimodal Input (Speech OR Text):** Accepts raw African speech audio (`.wav`, `.flac`, `.mp3`) or native text sentences.
+- **Top-1 by Default with Top-K Support:** Returns concise top-1 classification per task by default, with configurable `top_k` for ranked alternatives.
+- **Automatic Language Identification:** If no language is provided, the model automatically detects the spoken or written language from 100+ African languages.
+- **Sub-15ms CPU Inference:** Multi-task taxonomy vectors are pre-embedded into a 433 KB index (`data/taxonomies_index.pt`), enabling near-instant dot-product scoring on standard CPUs.
 
 ---
 
@@ -38,7 +27,7 @@ africlassifier/
 ├── pyproject.toml
 ├── README.md
 ├── scripts/
-│   ├── build_africlassifier_indices.py       # Encodes AfricaNouns (EN & FR) with final model
+│   ├── precompute_taxonomies.py              # Encodes multi-task taxonomies into fast index
 │   ├── build_sentence_foundation_dataset.py  # Full-sentence CLIP foundation builder
 │   ├── export_mobile_package.py              # Mobile MRL vector quantization & bundling
 │   ├── train_embeddinggemma_lora.py          # High-Rank LoRA Hopper training script
@@ -46,16 +35,13 @@ africlassifier/
 ├── src/
 │   └── africlassifier/
 │       ├── __init__.py
-│       ├── classifier.py                     # CPU-First inference engine (audio + text)
+│       ├── classifier.py                     # CPU-First multi-task inference engine
+│       ├── taxonomies.py                     # Domain, Sentiment, Emotion, Intent & Language anchors
 │       ├── languages.py                      # 308-language bidirectional ISO mapping
 │       ├── server.py                         # FastAPI REST microservice (CPU-first)
 │       └── infer.py                          # CLI tool emitting structured JSON
 └── data/
-    ├── indices/                              # Precomputed AfricaNouns vector indices
-    │   ├── nouns_en_embeddings.pt            # 100,000 English AfricaNouns (float16)
-    │   ├── nouns_en_metadata.json
-    │   ├── nouns_fr_embeddings.pt            # 100,000 French AfricaNouns (float16)
-    │   └── nouns_fr_metadata.json
+    ├── taxonomies_index.pt                   # Precomputed 433 KB multi-task vector index
     ├── clips/                                # 16 kHz mono FLAC clips
     └── train_pairs_sentence.jsonl            # Pure full-sentence training pairs
 ```
@@ -80,94 +66,70 @@ from africlassifier import AfriClassifier
 # Loads on CPU by default (fast & lightweight)
 classifier = AfriClassifier.load(
     model_path="outputs/embeddinggemma_lora",
-    indices_dir="data/indices",
-    device="cpu",             # "cpu" (default) or "cuda"
-    quantize_cpu=False,       # Set True for dynamic INT8 quantization on CPU
+    taxonomy_index_path="data/taxonomies_index.pt",
+    device="cpu",  # "cpu" (default) or "cuda"
 )
 
-# 1. Classify African Speech Audio -> English Nouns (Default):
-result = classifier.predict(
+# 1. Spoken Audio Classification (Ahanta speech audio clip):
+result_audio = classifier.predict(
     input_data="sample_speech.flac",
-    language="twi",           # Or "yoruba", "swahili", "aha", etc.
-    target_language="en",     # "en" (default) or "fr"
-    threshold=0.15,
-    top_k=5,
+    top_k=1,  # Concise top-1 per task
 )
-print(result.to_json(indent=2))
+print(result_audio.to_json(indent=2))
 
-# 2. Classify African Speech Audio -> French Nouns:
-result_fr = classifier.predict(
-    input_data="sample_speech.flac",
-    language="twi",
-    target_language="fr",     # Returns French AfricaNouns!
-    top_k=5,
-)
-print(result_fr.to_json(indent=2))
-
-# 3. Classify African Native Text -> English Nouns:
+# 2. Native African Text Classification (Twi customer dispute):
 result_text = classifier.predict(
-    input_data="Sɛ yɛbrɛ yɛn ho ase na yebu afoforo a, ɛma asomdwoe ba abusua no mu.",
-    language="twi",
-    target_language="en",
-    top_k=5,
+    input_data="Me de me sika kɔ maa mo nanso mo service no yɛ dɔm pii, me pɛ sɛ mo gyae na mo de me sika ma me.",
+    top_k=3,  # Top-3 ranked options with scores
 )
 print(result_text.to_json(indent=2))
 ```
 
-### CLI Usage
+### CLI Tool
 ```bash
-# CPU classification of audio into English AfricaNouns (default):
-python -m africlassifier.infer --audio sample.flac --language twi --target-lang en
+# Classify speech audio on CPU:
+python -m africlassifier.infer --audio speech.flac --device cpu
 
-# CPU classification of audio into French AfricaNouns:
-python -m africlassifier.infer --audio sample.flac --language twi --target-lang fr
-
-# GPU classification with non-quantized weights:
-python -m africlassifier.infer --audio sample.flac --language twi --device cuda
-
-# Classify African text:
-python -m africlassifier.infer --text "Kuayɔ mu nneɛma a ɛbɛma nnɔbae adɔ" --language twi
+# Classify African text with top-3 alternatives:
+python -m africlassifier.infer --text "Kuayɔ mu nneɛma a ɛbɛma nnɔbae adɔ" --top-k 3
 ```
 
-### Structured JSON Output
+### Structured Multi-Task JSON Output
 ```json
 {
   "input_type": "audio",
-  "input_source": "sample_speech.flac",
-  "language": {
-    "iso": "twi",
-    "name": "Twi"
-  },
-  "target_language": "en",
+  "input_source": "speech.flac",
+  "duration_seconds": 6.73,
   "device_used": "cpu",
-  "threshold": 0.15,
-  "matched_count": 5,
-  "inference_time_ms": 12.8,
-  "matched_labels": [
-    {
-      "rank": 1,
-      "label": "cocoa farming",
-      "type": "noun_phrase",
-      "score": 0.6421
-    },
-    {
-      "rank": 2,
-      "label": "crop yield",
-      "type": "noun_phrase",
-      "score": 0.5894
-    },
-    {
-      "rank": 3,
-      "label": "agricultural development",
-      "type": "noun_phrase",
-      "score": 0.5412
+  "inference_time_ms": 10.96,
+  "detected_language": {
+    "label": "Ahanta",
+    "score": 0.4557,
+    "iso": "aha"
+  },
+  "domain": {
+    "top_1": {
+      "label": "religion_spirituality",
+      "score": 0.106
     }
-  ],
-  "top_prediction": {
-    "rank": 1,
-    "label": "cocoa farming",
-    "type": "noun_phrase",
-    "score": 0.6421
+  },
+  "sentiment": {
+    "top_1": {
+      "label": "positive",
+      "score": 0.0755
+    }
+  },
+  "emotion": {
+    "top_1": {
+      "label": "hope",
+      "score": 0.0512
+    }
+  },
+  "intent": {
+    "top_1": {
+      "label": "cancellation_refund",
+      "score": 0.0609
+    }
   }
 }
 ```
@@ -185,5 +147,5 @@ USE_GPU=1 python -m africlassifier.server
 ```
 
 **Endpoints:**
-- `POST /classify/audio` (Form: `file`, `language`, `target_language="en"|"fr"`, `top_k=5`)
-- `POST /classify/text`  (JSON: `{"text": "...", "language": "twi", "target_language": "en"}`)
+- `POST /classify/audio` (Form: `file`, `language` (optional), `top_k=1`)
+- `POST /classify/text`  (JSON: `{"text": "...", "language": "twi", "top_k": 1}`)

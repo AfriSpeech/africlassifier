@@ -1,9 +1,10 @@
-"""africlassifier: CPU-first Foundation Model for African Speech and Text Classification."""
+"""africlassifier: CPU-first Multi-Task Foundation Model for African Speech and Text."""
 
 from africlassifier.classifier import (
     AfriClassifier,
-    LabelScore,
-    PredictionResult,
+    MultiTaskResult,
+    ScoredClass,
+    TaskPrediction,
 )
 from africlassifier.languages import ISO_TO_NAME, NAME_TO_ISO, resolve_language
 
@@ -16,8 +17,9 @@ def create_app(*args, **kwargs):
 
 __all__ = [
     "AfriClassifier",
-    "PredictionResult",
-    "LabelScore",
+    "MultiTaskResult",
+    "ScoredClass",
+    "TaskPrediction",
     "ISO_TO_NAME",
     "NAME_TO_ISO",
     "resolve_language",

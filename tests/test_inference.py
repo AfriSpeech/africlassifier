@@ -1,13 +1,11 @@
-"""Unit tests for afri2labels inference, languages, and concept extraction."""
+"""Unit tests for africlassifier multi-task classification engine."""
 
-import json
 import pytest
-from afri2labels.extractor import extract_concept_labels
-from afri2labels.languages import ISO_TO_NAME, NAME_TO_ISO, resolve_language
+from africlassifier.languages import ISO_TO_NAME, NAME_TO_ISO, resolve_language
+from africlassifier.taxonomies import DOMAINS, EMOTIONS, INTENTS, LANGUAGES, SENTIMENTS
 
 
 def test_language_resolution():
-    # Test ISO to Name
     iso, name = resolve_language("twi")
     assert iso == "twi"
     assert name == "Twi"
@@ -16,42 +14,34 @@ def test_language_resolution():
     assert iso == "yor"
     assert name == "Yoruba"
 
-    # Test Name to ISO
     iso, name = resolve_language("Swahili")
     assert iso == "swa"
     assert name == "Swahili"
 
-    iso, name = resolve_language("Amharic")
-    assert iso == "amh"
-    assert name == "Amharic"
-
-    # Test Case Insensitivity
     iso, name = resolve_language("HAUSA")
     assert iso == "hau"
     assert name == "Hausa"
 
 
-def test_concept_extraction():
-    sample_text = (
-        "Many cocoa farmers in the western region are adopting modern agricultural practices "
-        "to increase crop yields and protect forest reserves."
-    )
-    result = extract_concept_labels(sample_text)
+def test_taxonomies_structure():
+    # Verify core multi-task taxonomies
+    assert "agriculture" in DOMAINS
+    assert "healthcare" in DOMAINS
+    assert "customer_support" in DOMAINS
 
-    # Check structure
-    assert "noun_phrases" in result
-    assert "verbs" in result
-    assert "all_labels" in result
+    assert "positive" in SENTIMENTS
+    assert "negative" in SENTIMENTS
 
-    # Check extracted noun phrases (strictly from doc.noun_chunks)
-    np_labels = [item["label"] for item in result["noun_phrases"]]
-    assert any("cocoa farmers" in lbl for lbl in np_labels)
-    assert any("agricultural practices" in lbl for lbl in np_labels)
-    assert any("crop yields" in lbl for lbl in np_labels)
+    assert "joy" in EMOTIONS
+    assert "frustration" in EMOTIONS
 
-    # Check extracted action verbs
-    verb_labels = [item["label"] for item in result["verbs"]]
-    assert "adopt" in verb_labels or "increase" in verb_labels or "protect" in verb_labels
+    assert "complaint" in INTENTS
+    assert "cancellation_refund" in INTENTS
+    assert "inquiry" in INTENTS
+
+    assert len(LANGUAGES) >= 100
+    assert "Twi" in LANGUAGES or "Akan" in LANGUAGES
+    assert "Yoruba" in LANGUAGES
 
 
 def test_languages_catalog():
