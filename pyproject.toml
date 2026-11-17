@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "afri2labels"
-version = "0.2.0"
-description = "afri2labels: Multimodal Foundation Model mapping African Speech Audio & Text directly to English Noun Phrases, Named Entities, and Action Verbs"
+name = "africlassifier"
+version = "0.3.0"
+description = "africlassifier: CPU-first Foundation Model for African Speech and Text Classification into English & French AfricaNouns"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -21,6 +21,9 @@ dependencies = [
     "pandas",
     "pyarrow",
 ]
+
+[project.optional-dependencies]
+server = ["fastapi", "uvicorn", "python-multipart"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
