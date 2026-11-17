@@ -1,22 +1,24 @@
 # africlassifier: CPU-First Multi-Task Foundation Classifier for African Speech & Text
 
-**africlassifier** is an omnimodal zero-shot classification foundation model that classifies speech audio **or** text in **any African language** across 5 core NLP dimensions:
-1. **Domain / Topic** *(Agriculture, Healthcare, Governance, Finance, Education, Religion, Tech, Customer Support)*
+**africlassifier** is an omnimodal zero-shot classification foundation model that classifies speech audio **or** text in **any African language** across 6 core NLP dimensions:
+1. **Domain / Topic** *(Agriculture, Healthcare, Governance/Politics, Business/Finance, Education, Religion, Culture/Sports, Climate, Legal/Justice, Technology, Customer Support)*
 2. **Sentiment** *(Positive, Negative, Neutral)*
 3. **Emotion** *(Joy, Sadness, Anger, Fear, Surprise, Hope, Frustration, Neutral)*
-4. **Intent** *(Greeting, Inquiry, Complaint, Billing/Payment, Tech Support, Booking, Refund/Cancellation, Farewell)*
-5. **Language Identification** *(100+ African languages + English + French)*
+4. **Intent Detection** *(Greeting, Inquiry, Complaint, Billing/Payment, Tech Support, Booking, Refund/Cancellation, Farewell)*
+5. **Safety & Content Moderation** *(Hate Speech & Violence Detection vs Safe/Peaceful)*
+6. **Language Identification** *(100+ African languages + English + French)*
 
-Engineered **CPU-first** for fast on-device and local server deployment, with optional non-quantized GPU acceleration.
+Engineered **CPU-first** for fast on-device and edge deployment, with sub-15ms inference latency and optional GPU acceleration.
 
 ---
 
-## 1. Key Capabilities
+## 1. Architecture & Design Principles
 
-- **Omnimodal Input (Speech OR Text):** Accepts raw African speech audio (`.wav`, `.flac`, `.mp3`) or native text sentences.
+- **Omnimodal (Speech OR Text):** Directly accepts raw African speech audio (`.wav`, `.flac`, `.mp3`) without requiring ASR transcription, as well as native African text.
+- **Fine-Tuned Foundation Embeddings:** All taxonomy anchors are pre-encoded directly with our **fine-tuned foundation model** (`outputs/embeddinggemma_lora`), ensuring classification anchors and African inputs share the exact same joint multimodal representation space.
+- **Full-Sentence Anchor Representations:** Embedding models perform significantly better with grammatically coherent, descriptive sentences than with isolated keywords. Each category is grounded in a rich, natural English sentence (e.g., *'This discussion is about agriculture, farming crops, harvesting food, livestock, soil, and agricultural practices.'*), while the classification engine outputs clean, canonical short labels (`agriculture`, `complaint`, `hate_speech`) mapped to those representations.
+- **Sub-15ms CPU Scoring:** All taxonomy anchor vectors are pre-computed into a compact ~436 KB index (`data/taxonomies_index.pt`), enabling instant dot-product similarity matching on standard CPU cores.
 - **Top-1 by Default with Top-K Support:** Returns concise top-1 classification per task by default, with configurable `top_k` for ranked alternatives.
-- **Automatic Language Identification:** If no language is provided, the model automatically detects the spoken or written language from 100+ African languages.
-- **Sub-15ms CPU Inference:** Multi-task taxonomy vectors are pre-embedded into a 433 KB index (`data/taxonomies_index.pt`), enabling near-instant dot-product scoring on standard CPUs.
 
 ---
 
@@ -185,4 +187,16 @@ Evaluated on **80 non-religious African speech clips and native texts across 16 
 - **East Africa**: Swahili, Amharic, Oromo, Wolaytta, Luganda, Acholi
 - **Central Africa**: Lingala
 - **Southern Africa**: Shona, Zulu
+
+---
+
+## 6. Community Feedback & Contributions Welcome
+
+More feedback, suggestions, and contributions are warmly welcome!
+- **Taxonomy Refinement**: If you have domain-specific taxonomy needs (e.g., public health surveillance, civic education, agricultural extension services), propose new sentence anchors or tasks.
+- **Language Coverage**: Help expand and calibrate anchors for additional African languages, minority dialects, and regional accents.
+- **Evaluation Benchmarks**: Contribute OOD test sets, customer support dialogues, or speech audio benchmarks in your language.
+
+Please feel free to open an issue, submit a pull request, or get in touch!
+
 
