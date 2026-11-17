@@ -25,5 +25,9 @@ dependencies = [
 [project.optional-dependencies]
 server = ["fastapi", "uvicorn", "python-multipart"]
 
+[project.scripts]
+afri-infer = "africlassifier.infer:main"
+afri-server = "africlassifier.server:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
