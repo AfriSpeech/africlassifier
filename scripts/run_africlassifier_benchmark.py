@@ -192,6 +192,9 @@ def collect_benchmark_samples(data_dir: Path, client, samples_per_lang: int = 5)
                     key = f"{item['corpus']}_{item['iso']}"
                     counts_by_lang[key] = counts_by_lang.get(key, 0) + 1
         print(f"Loaded {len(samples):,} existing annotations from {gold_file}.")
+        if len(samples) >= 80:
+            print(f"Dataset already has {len(samples)} samples across {len(counts_by_lang)} languages. Proceeding directly to benchmark evaluation.")
+            return samples
 
     print("=" * 65)
     print("Sampling Non-Religious Audio from WaxalNLP & FLEURS & Annotating with Gemini")
