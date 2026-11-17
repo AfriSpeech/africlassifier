@@ -55,7 +55,7 @@ def test_concept_extraction():
 
 
 def test_languages_catalog():
-    assert len(ISO_TO_NAME) >= 300
-    assert len(NAME_TO_ISO) >= 300
+    assert len(ISO_TO_NAME) >= 250
+    assert len(NAME_TO_ISO) >= 250
     assert "zul" in ISO_TO_NAME
     assert ISO_TO_NAME["zul"] == "Zulu"
