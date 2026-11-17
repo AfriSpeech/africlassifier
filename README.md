@@ -52,22 +52,24 @@ africlassifier/
 
 ## 3. Quickstart & Usage
 
+**Hugging Face Model Hub:** [https://huggingface.co/AfriSpeech/africlassifier](https://huggingface.co/AfriSpeech/africlassifier)
+
 ### Installation
 ```bash
+pip install git+https://github.com/AfriSpeech/africlassifier.git
+# Or clone and install:
 git clone https://github.com/AfriSpeech/africlassifier.git
 cd africlassifier
 pip install -e .
-# Optional for REST server:
-pip install -e ".[server]"
 ```
 
 ### Python API (CPU-First by Default)
 ```python
 from africlassifier import AfriClassifier
 
-# Loads on CPU by default (fast & lightweight)
+# Loads on CPU by default directly from Hugging Face:
 classifier = AfriClassifier.load(
-    model_path="outputs/embeddinggemma_lora",
+    model_path="AfriSpeech/africlassifier",
     taxonomy_index_path="data/taxonomies_index.pt",
     device="cpu",  # "cpu" (default) or "cuda"
 )
