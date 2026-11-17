@@ -168,19 +168,19 @@ Evaluated on **80 non-religious African speech clips and native texts across 16 
 | Modality / Task | Metric | Score | Details / Breakdown |
 |---|---|---|---|
 | **Audio Language ID** | Top-1 Accuracy | **47.5%** | 16 African languages |
-| **Audio Language ID** | Top-3 Accuracy | **62.5%** | Correct language within Top-3 |
-| **Audio Domain / Topic** | Top-1 Accuracy | **32.5%** | 11 semantic domain classes |
-| **Audio Domain / Topic** | Top-3 Accuracy | **53.8%** | Broad domain alignment |
-| **Audio Sentiment** | Accuracy | **50.0%** | Positive / Negative / Neutral |
-| **Text Sentiment** | Accuracy | **61.3%** | Native African text |
-| **Text Domain / Topic** | Top-1 Accuracy | **23.8%** | 11 semantic domain classes |
+| **Audio Language ID** | Top-3 Accuracy | **60.0%** | Correct language within Top-3 |
+| **Audio Domain / Topic** | Top-1 Accuracy | **23.8%** | 11 semantic domain classes |
+| **Audio Domain / Topic** | Top-3 Accuracy | **56.2%** | Broad domain alignment |
+| **Audio Sentiment** | Accuracy | **28.8%** | Positive / Negative / Neutral |
+| **Text Sentiment** | Accuracy | **53.8%** | Native African text |
+| **Text Domain / Topic** | Top-1 Accuracy | **21.2%** | 11 semantic domain classes |
 | **Text Domain / Topic** | Top-3 Accuracy | **38.8%** | Native African text |
-| **Safety / Violence Moderation** | Threat / Hostility Recall | **100.0%** (8/8) | Correctly caught all violent/warfare/killing statements |
-| **Safety / Content Moderation** | Overall Balanced Accuracy | **68.8%** (11/16) | Hate speech vs peaceful expressions |
+| **Text Emotion** | Accuracy | **26.2%** | 8 emotion classes |
+| **Safety / Content Moderation** | Balanced Overall Accuracy | **68.8%** (11/16) | Hate speech & violence vs peaceful expressions |
 | **Customer Support Intent** | Cancellation / Refund | **100.0%** (4/4) | Across Twi, Yoruba, Swahili, Hausa |
 | **Customer Support Intent** | Farewell | **100.0%** (4/4) | Across Twi, Yoruba, Swahili, Hausa |
 | **Customer Support Intent** | Inquiry | **75.0%** (3/4) | Information seeking |
-| **Customer Support Intent** | Top-2 Accuracy | **50.0%** | Experimental 9-class intent |
+| **Customer Support Intent** | Top-2 Accuracy | **67.9%** (19/28) | High-recall chatbot intent routing |
 
 ### Evaluated Languages
 - **West Africa**: Akan (Twi/Fante), Southern Dagaare, Ewe, Dagbani, Ikposo, Yoruba, Hausa
