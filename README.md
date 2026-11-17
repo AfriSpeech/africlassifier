@@ -40,8 +40,9 @@ speech2topics/
 ├── README.md
 ├── scripts/
 │   ├── build_sentence_foundation_dataset.py  # Pure full-sentence CLIP builder
-│   ├── build_expanded_inference_catalog.py   # Merges ~696k AfricaNouns & entities
+│   ├── build_codeswitch_catalog.py           # Bundles 633k africa-tts noun phrases
 │   ├── build_deployment_index.py             # Pre-encodes labels into fast tensor
+│   ├── export_mobile_package.py              # Mobile MRL vector truncation & bundling
 │   ├── train_embeddinggemma_lora.py          # High-Rank LoRA training script
 │   └── evaluate.py                           # Recall@K (1, 5, 10) & MRR evaluator
 ├── src/
@@ -56,7 +57,7 @@ speech2topics/
     ├── clips/                                # 16 kHz mono FLAC clips
     ├── train_pairs_sentence.jsonl            # Pure full-sentence training pairs
     ├── ood_val_pairs_sentence.jsonl          # Out-of-domain FLEURS validation pairs
-    ├── expanded_labels.json                  # ~696k African nouns & named entities
+    ├── codeswitch_nouns_catalog.json         # 633,697 africa-tts codeswitching noun phrases
     └── deployment_index/                     # Precomputed vector index for <5ms serving
 ```
 
@@ -64,11 +65,11 @@ speech2topics/
 
 ## 3. Deployment Workflow (Pre-Embedded Vector Search)
 
-### Step 1: Pre-Encode the ~696,000 Noun & Entity Catalog (Offline, One-Time)
+### Step 1: Pre-Encode the ~633k africa-tts Noun Phrases (Offline, One-Time)
 ```bash
 python scripts/build_deployment_index.py \
-    --model_path outputs/checkpoint-1000 \
-    --catalog_path data/expanded_labels.json \
+    --model_path outputs/checkpoint-34500 \
+    --catalog_path data/codeswitch_nouns_catalog.json \
     --out_dir data/deployment_index
 ```
 This generates `data/deployment_index/label_embeddings.pt` (normalized float16 tensor, ~1 GB) once.
@@ -80,8 +81,8 @@ This generates `data/deployment_index/label_embeddings.pt` (normalized float16 t
 from afri2labels import Afri2LabelsClassifier
 
 classifier = Afri2LabelsClassifier.load(
-    model_path="outputs/checkpoint-1000",
-    catalog_path="data/deployment_index/label_metadata.json",
+    model_path="outputs/checkpoint-34500",
+    catalog_path="data/codeswitch_nouns_catalog.json",
     embeddings_cache_path="data/deployment_index/label_embeddings.pt",
     device="cuda",
 )

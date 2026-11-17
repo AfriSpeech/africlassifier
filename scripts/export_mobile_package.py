@@ -163,7 +163,7 @@ def export_mobile_package(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Export mobile deployment package for afri2labels.")
     parser.add_argument("--model_path", type=str, default="outputs/checkpoint-8500", help="Model checkpoint to use")
-    parser.add_argument("--catalog_path", type=str, default="data/expanded_labels.json", help="Master concepts catalog")
+    parser.add_argument("--catalog_path", type=str, default="data/codeswitch_nouns_catalog.json", help="africa-tts codeswitching noun phrases catalog")
     parser.add_argument("--output_dir", type=str, default="data/mobile_export", help="Output directory for mobile bundle")
     parser.add_argument("--dim", type=int, default=256, choices=SUPPORTED_DIMENSIONS, help="MRL dimension (128, 256, 512, 768)")
     parser.add_argument("--limit", type=int, default=100000, help="Max concepts to bundle (default 100k)")

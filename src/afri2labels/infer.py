@@ -28,8 +28,8 @@ def parse_args():
         "--catalog",
         "-c",
         type=str,
-        default="data/trained_labels.json",
-        help="Path to label catalog JSON file (default: data/trained_labels.json)",
+        default="data/codeswitch_nouns_catalog.json",
+        help="Path to label catalog JSON file (default: data/codeswitch_nouns_catalog.json from africa-tts)",
     )
     parser.add_argument(
         "--cache",

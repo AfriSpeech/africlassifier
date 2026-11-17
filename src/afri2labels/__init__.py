@@ -10,7 +10,13 @@ from afri2labels.classifier import (
 )
 from afri2labels.extractor import extract_concept_labels
 from afri2labels.languages import ISO_TO_NAME, NAME_TO_ISO, resolve_language
-from afri2labels.server import create_app
+
+
+def create_app(*args, **kwargs):
+    """Lazy import of the FastAPI serving application."""
+    from afri2labels.server import create_app as _create_app
+    return _create_app(*args, **kwargs)
+
 
 __all__ = [
     "Afri2LabelsClassifier",

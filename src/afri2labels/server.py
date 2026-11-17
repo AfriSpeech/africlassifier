@@ -43,7 +43,7 @@ class TextQueryRequest(BaseModel):
 def create_app(
     model_path: str = "outputs/checkpoint-1000",
     index_path: str = "data/deployment_index/label_embeddings.pt",
-    metadata_path: str = "data/deployment_index/label_metadata.json",
+    metadata_path: str = "data/codeswitch_nouns_catalog.json",
     device: str = "cuda" if torch.cuda.is_available() else "cpu",
 ) -> FastAPI:
     app = FastAPI(

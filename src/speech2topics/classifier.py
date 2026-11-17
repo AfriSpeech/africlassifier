@@ -123,10 +123,12 @@ class SpeechTopicClassifier:
         return self.label_embeddings
 
     def get_label_embeddings(self, lang_name: Optional[str] = None) -> torch.Tensor:
-        """Retrieve precomputed embeddings for unconditioned or language-conditioned labels."""
+        """Retrieve precomputed embeddings for candidate labels."""
+        if self.label_embeddings is not None:
+            return self.label_embeddings
+
         if not lang_name:
-            if self.label_embeddings is None:
-                self.precompute_label_embeddings()
+            self.precompute_label_embeddings()
             return self.label_embeddings
 
         cache_key = lang_name.strip().lower()
@@ -211,7 +213,7 @@ class SpeechTopicClassifier:
             preview_source = input_str[:120]
 
         # Cosine similarity: [1, num_labels]
-        sims = torch.mm(input_emb, label_matrix.T).squeeze(0)
+        sims = torch.mm(input_emb, label_matrix.to(input_emb.dtype).T).squeeze(0)
         scores = sims.float().cpu().numpy()
 
         ranked_indices = np.argsort(-scores)

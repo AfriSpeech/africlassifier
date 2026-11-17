@@ -100,7 +100,7 @@ def build_deployment_index(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build pre-embedded vector index for afri2labels.")
     parser.add_argument("--model_path", type=str, default="outputs/checkpoint-1000", help="Path to model checkpoint")
-    parser.add_argument("--catalog_path", type=str, default="data/expanded_labels.json", help="Path to concepts JSON")
+    parser.add_argument("--catalog_path", type=str, default="data/codeswitch_nouns_catalog.json", help="Path to africa-tts codeswitch concepts JSON")
     parser.add_argument("--out_dir", type=str, default="data/deployment_index", help="Output directory for index")
     parser.add_argument("--language", type=str, default=None, help="Optional language prefix (e.g. twi, yor)")
     parser.add_argument("--batch_size", type=int, default=256)
